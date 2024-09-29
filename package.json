@@ -10,8 +10,12 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-ml-kit/text-recognition": "^1.5.2",
+    "axios": "^1.7.7",
     "react": "18.3.1",
-    "react-native": "0.75.3"
+    "react-native": "0.75.3",
+    "react-native-svg": "^15.7.1",
+    "react-native-view-shot": "^3.8.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

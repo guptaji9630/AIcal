@@ -19,8 +19,19 @@ const DrawingCalculator: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const currentPath = useRef<string[]>([]);
-  const gestureStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const gestureStart = useRef<{ x: number; y: number; time: number }>({ x: 0, y: 0, time: 0 });
   const viewShotRef = useRef<ViewShot>(null);
+
+  const recognizeDigitOrOperator = async (imageUri: string): Promise<string> => {
+    const result = await GoogleMLKitTextRecognition.recognize(imageUri);
+    let recognized = result.text.trim();
+    if (/^[0-9]$/.test(recognized)) {
+      return recognized; // It's a digit
+    } else if (/^[+\-*/]$/.test(recognized)) {
+      return recognized; // It's an operator
+    }
+    return ''; // Not recognized as a single digit or operator
+  };
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -28,17 +39,28 @@ const DrawingCalculator: React.FC = () => {
     onPanResponderGrant: (evt) => {
       const { locationX, locationY } = evt.nativeEvent;
       currentPath.current = [`M${locationX},${locationY}`];
-      gestureStart.current = { x: locationX, y: locationY };
+      gestureStart.current = { x: locationX, y: locationY, time: Date.now() };
     },
     onPanResponderMove: (evt) => {
       const { locationX, locationY } = evt.nativeEvent;
       currentPath.current.push(`L${locationX},${locationY}`);
       setPaths([...paths, currentPath.current.join(' ')]);
     },
-    onPanResponderRelease: (evt, gestureState: PanResponderGestureState) => {
+    onPanResponderRelease: async (evt, gestureState: PanResponderGestureState) => {
       const { locationX, locationY } = evt.nativeEvent;
-      const gesture = recognizeGesture(gestureStart.current, { x: locationX, y: locationY });
-      if (gesture) {
+      const endTime = Date.now();
+      const duration = endTime - gestureStart.current.time;
+      const gesture = recognizeGesture(gestureStart.current, { x: locationX, y: locationY }, duration);
+      
+      if (gesture === 'digit' || gesture === 'operator') {
+        const imageUri = await captureCanvas();
+        if (imageUri) {
+          const recognized = await recognizeDigitOrOperator(imageUri);
+          if (recognized) {
+            setRecognizedText(prev => prev + recognized);
+          }
+        }
+      } else if (gesture) {
         setRecognizedText(prev => applyGesture(gesture, prev));
       } else {
         setPaths([...paths, currentPath.current.join(' ')]);
@@ -49,7 +71,7 @@ const DrawingCalculator: React.FC = () => {
 
   const captureCanvas = async (): Promise<string | null> => {
     try {
-      const uri = viewShotRef.current ? await viewShotRef.current.capture() : null;
+      const uri = await viewShotRef.current?.capture();
       return uri || null;
     } catch (error) {
       console.error('Error capturing canvas:', error);

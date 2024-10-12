@@ -11,12 +11,12 @@ export const recognizeGesture = (start: Point, end: Point, duration: number): Ge
   const distance = Math.sqrt(dx * dx + dy * dy);
 
   // Recognize tap for digits
-  if (distance < 10 && duration < 200) {
+  if (distance < 10 && duration < 6000) {
     return 'digit';
   }
 
   // Recognize short stroke for operators
-  if (distance < 30 && duration < 300) {
+  if (distance < 30 && duration < 3000) {
     return 'operator';
   }
 

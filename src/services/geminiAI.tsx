@@ -20,5 +20,5 @@ export const calculateExpression = async (expression: string): Promise<string> =
   } catch (error) {
     console.error('Error calculating expression:', error);
     throw error;
-  }
+  }   
 };
